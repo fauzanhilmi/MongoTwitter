@@ -6,17 +6,22 @@
 package mongotwitter;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.Block;
 import com.mongodb.DBCollection;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 import org.bson.Document;
+import org.bson.types.ObjectId;
 
 /**
  *
@@ -98,6 +103,39 @@ public class MongoTwitter {
         }
     }
     
+    public void tweet(String body) {
+        final ObjectId tweet_id = new ObjectId();
+        final Date time = new Date();
+        MongoCollection<Document> tweets = db.getCollection("tweets");
+        MongoCollection<Document> userline = db.getCollection("userline");
+        MongoCollection<Document> timeline = db.getCollection("timeline");
+        MongoCollection<Document> followers = db.getCollection("followers");
+        
+        Document tweetDoc = new Document("tweet_id",tweet_id)
+                .append("username",nick)
+                .append("body",body);
+        
+        Document userDoc = new Document("username",nick)
+                .append("time",time)
+                .append("tweet_id",tweet_id);
+        
+        List<Document> timelineList = new ArrayList<Document>();
+        List<Document> followerList = followers.find(eq("username",nick)).into(new ArrayList<Document>());
+        for(Document doc : followerList) {
+            String follower = (String) doc.get("follower");
+            Document timeDoc = new Document("username",follower)
+                    .append("time",time)
+                    .append("tweet_id",tweet_id);
+            timelineList.add(timeDoc);
+        }
+        
+        tweets.insertOne(tweetDoc);
+        userline.insertOne(userDoc);
+        timeline.insertMany(timelineList);
+        
+        System.out.println("You tweeted \""+body+"\" at "+time);        
+    }
+    
     public void printMenu() {
         System.out.println("Welcome to MongoTwitter");
         System.out.println("Type any command below\n\n");        
@@ -113,6 +151,6 @@ public class MongoTwitter {
     public static void main(String[] args) {
         MongoTwitter mt = new MongoTwitter();
         mt.login("fauzan","1234");
-        mt.follow("tegar");
+        mt.tweet("hello world!");
     }
 }
