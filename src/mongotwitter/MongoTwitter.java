@@ -14,6 +14,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
+import java.util.Date;
 import java.util.Set;
 import org.bson.Document;
 
@@ -60,13 +61,40 @@ public class MongoTwitter {
         MongoCollection<Document> users = db.getCollection("users");
         Document oldDoc = users.find(and(eq("username",username),eq("password",password))).first();
         if(oldDoc==null) {
-            System.out.println("Login failed : Either username is not found or the password didn't match");
+            System.out.println("Login failed : Either username does not exist or the password didn't match");
         }
         else {
             nick = username;
             isLogin = true;
             System.out.println("Login succeed");
             System.out.println("Welcome back, "+username+"!");
+        }
+    }
+    
+    public void follow(String followed) {
+        if(followed.equals(nick)) {
+            System.out.println("Follow failed : You cannot follow yourself");
+        }
+        else {
+            MongoCollection<Document> users = db.getCollection("users");
+            Document oldDoc = users.find(eq("username",followed)).first();
+            if(oldDoc==null) {
+                System.out.println("Follow failed : Username does not exist");
+            }
+            else {
+                MongoCollection<Document> friends = db.getCollection("friends");
+                MongoCollection<Document> followers = db.getCollection("followers");
+                Date ts = new Date();
+                Document friendDoc = new Document("username",nick)
+                        .append("friend",followed)
+                        .append("since",ts);
+                Document followerDoc = new Document("username",followed)
+                        .append("follower",nick)
+                        .append("since", ts);
+                friends.insertOne(friendDoc);
+                followers.insertOne(followerDoc);
+                System.out.println("You are successfully followed "+followed);
+            }
         }
     }
     
@@ -84,6 +112,7 @@ public class MongoTwitter {
     
     public static void main(String[] args) {
         MongoTwitter mt = new MongoTwitter();
-        mt.login("banter","huhuhu");
+        mt.login("fauzan","1234");
+        mt.follow("tegar");
     }
 }
