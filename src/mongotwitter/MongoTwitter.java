@@ -12,6 +12,8 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.eq;
 import java.util.Set;
 import org.bson.Document;
 
@@ -24,22 +26,48 @@ public class MongoTwitter {
     private String database = "fauzan";
     private MongoDatabase db = null;
     
+    private String nick;
+    private boolean isLogin;
+    
     public MongoTwitter() {
         String url = "mongodb://"+address;
         MongoClientURI uri = new MongoClientURI(url);
         MongoClient mc = new MongoClient(uri);
         db = mc.getDatabase(database);
-//        MongoIterable<String> colls = db.listCollectionNames();
-//        for (String s : colls) {
-//            System.out.println(s);
-//        }
+
+        isLogin = false;
     }
     
     public void signup(String username, String password) {
         MongoCollection<Document> users = db.getCollection("users");
-        Document doc = new Document("username",username)
-                   .append("password",password);
-        users.insertOne(doc);
+        Document oldDoc = users.find(eq("username",username)).first();
+        if(oldDoc!=null) {
+            System.out.println("Signup failed : Username already exists");
+        }
+        else {
+            Document doc = new Document("username",username)
+                    .append("password",password);
+            users.insertOne(doc);
+            System.out.println("Username "+username+" is succesfully signed up");
+            //autologin
+            nick = username;
+            isLogin = true;
+            System.out.println("Welcome to the app, "+username+"!");
+        }
+    }
+    
+    public void login(String username, String password) {
+        MongoCollection<Document> users = db.getCollection("users");
+        Document oldDoc = users.find(and(eq("username",username),eq("password",password))).first();
+        if(oldDoc==null) {
+            System.out.println("Login failed : Either username is not found or the password didn't match");
+        }
+        else {
+            nick = username;
+            isLogin = true;
+            System.out.println("Login succeed");
+            System.out.println("Welcome back, "+username+"!");
+        }
     }
     
     public void printMenu() {
@@ -56,6 +84,6 @@ public class MongoTwitter {
     
     public static void main(String[] args) {
         MongoTwitter mt = new MongoTwitter();
-        mt.signup("fauzan","hahahihi");
+        mt.login("banter","huhuhu");
     }
 }
