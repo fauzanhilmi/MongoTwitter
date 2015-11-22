@@ -144,15 +144,14 @@ public class MongoTwitter {
         }
         else {
             MongoCollection<Document> userline = db.getCollection("userline");
-            MongoCollection<Document> tweets = db.getCollection("tweets");
-            List<Date> timeList = new ArrayList<Date>();
-            List<String> bodyList = new ArrayList<String>();
-            
             List<Document> userlineList = userline.find(eq("username",username)).into(new ArrayList<Document>());
             if(userlineList.isEmpty()) {
                 System.out.println(username+"'s userline is empty");
             }
             else {
+                MongoCollection<Document> tweets = db.getCollection("tweets");
+                List<Date> timeList = new ArrayList<Date>();
+                List<String> bodyList = new ArrayList<String>();
                 for(Document doc : userlineList) {
                     Date time = (Date) doc.get("time");
                     ObjectId tweet_id = (ObjectId) doc.get("tweet_id");
@@ -164,7 +163,43 @@ public class MongoTwitter {
                 }
 
                 for(int i=0; i<timeList.size(); i++) {
-                    System.out.println(timeList.get(i)+" : "+bodyList.get(i));
+                    System.out.println("("+timeList.get(i)+") "+bodyList.get(i));
+                }
+            }
+        }
+    }
+    
+    public void showTimeline(String username) {
+        MongoCollection<Document> users = db.getCollection("users");
+        Document oldDoc = users.find(eq("username",username)).first();
+        if(oldDoc==null) {
+            System.out.println("Show timeline failed : Username does not exist");
+        }
+        else {
+            MongoCollection<Document> timeline = db.getCollection("timeline");
+            List<Document> timelineList = timeline.find(eq("username",username)).into(new ArrayList<Document>());
+            if(timelineList.isEmpty()) {
+                System.out.println(username+"'s timeline is empty");
+            }
+            else {
+                MongoCollection<Document> tweets = db.getCollection("tweets");
+                List<Date> timeList = new ArrayList<Date>();
+                List<String> nameList = new ArrayList<String>();
+                List<String> bodyList = new ArrayList<String>();
+                for(Document doc : timelineList) {
+                    Date time = (Date) doc.get("time");
+                    ObjectId tweet_id = (ObjectId) doc.get("tweet_id");
+                    Document tweetDoc = tweets.find(eq("tweet_id",tweet_id)).first();
+                    String name = (String) tweetDoc.get("username");
+                    String body = (String) tweetDoc.get("body");
+                    
+                    timeList.add(time);
+                    nameList.add(name);
+                    bodyList.add(body);
+                }
+                
+                for(int i=0; i<timeList.size(); i++) {
+                    System.out.println("("+timeList.get(i)+") "+nameList.get(i)+" : "+bodyList.get(i));
                 }
             }
         }
@@ -181,11 +216,11 @@ public class MongoTwitter {
         System.out.println("EXIT\n\n");
     }
     
-    
     public static void main(String[] args) {
         MongoTwitter mt = new MongoTwitter();
-        mt.login("fauzan","1234");
-//        mt.tweet("don't let your memes become dreams");
-          mt.showUserline("fauzan");
+        mt.login("beta","1234");
+        mt.follow("tegar");
+//        mt.tweet("hahaha");
+          mt.showTimeline("beta");
     }
 }
