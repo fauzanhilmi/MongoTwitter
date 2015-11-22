@@ -88,17 +88,23 @@ public class MongoTwitter {
             }
             else {
                 MongoCollection<Document> friends = db.getCollection("friends");
-                MongoCollection<Document> followers = db.getCollection("followers");
-                Date ts = new Date();
-                Document friendDoc = new Document("username",nick)
-                        .append("friend",followed)
-                        .append("since",ts);
-                Document followerDoc = new Document("username",followed)
-                        .append("follower",nick)
-                        .append("since", ts);
-                friends.insertOne(friendDoc);
-                followers.insertOne(followerDoc);
-                System.out.println("You are successfully followed "+followed);
+                Document frDoc = friends.find(and(eq("username",nick),eq("friend",followed))).first();
+                if(frDoc!=null) {
+                    System.out.println("Follow failed : You already followed "+followed);
+                }
+                else {
+                    MongoCollection<Document> followers = db.getCollection("followers");
+                    Date ts = new Date();
+                    Document friendDoc = new Document("username",nick)
+                            .append("friend",followed)
+                            .append("since",ts);
+                    Document followerDoc = new Document("username",followed)
+                            .append("follower",nick)
+                            .append("since", ts);
+                    friends.insertOne(friendDoc);
+                    followers.insertOne(followerDoc);
+                    System.out.println("You successfully followed "+followed);
+                }
             }
         }
     }
@@ -218,9 +224,9 @@ public class MongoTwitter {
     
     public static void main(String[] args) {
         MongoTwitter mt = new MongoTwitter();
-        mt.login("beta","1234");
-        mt.follow("tegar");
-//        mt.tweet("hahaha");
+        mt.login("alfa","1234");
+//        mt.follow("alfa");
+        mt.tweet("alfa is speaking");
           mt.showTimeline("beta");
     }
 }
