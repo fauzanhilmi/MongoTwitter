@@ -80,19 +80,19 @@ public class MongoTwitter {
     
     public void follow(String followed) {
         if(followed.equals(nick)) {
-            System.out.println("Follow failed : You cannot follow yourself");
+            System.out.println("* Follow failed : You cannot follow yourself");
         }
         else {
             MongoCollection<Document> users = db.getCollection("users");
             Document oldDoc = users.find(eq("username",followed)).first();
             if(oldDoc==null) {
-                System.out.println("Follow failed : Username does not exist");
+                System.out.println("* Follow failed : Username does not exist");
             }
             else {
                 MongoCollection<Document> friends = db.getCollection("friends");
                 Document frDoc = friends.find(and(eq("username",nick),eq("friend",followed))).first();
                 if(frDoc!=null) {
-                    System.out.println("Follow failed : You already followed "+followed);
+                    System.out.println("* Follow failed : You already followed @"+followed);
                 }
                 else {
                     MongoCollection<Document> followers = db.getCollection("followers");
@@ -105,7 +105,7 @@ public class MongoTwitter {
                             .append("since", ts);
                     friends.insertOne(friendDoc);
                     followers.insertOne(followerDoc);
-                    System.out.println("You successfully followed "+followed);
+                    System.out.println("* You successfully followed "+followed);
                 }
             }
         }
@@ -127,7 +127,7 @@ public class MongoTwitter {
                 .append("time",time)
                 .append("tweet_id",tweet_id);
         
-        List<Document> timelineList = new ArrayList<Document>();
+        List<Document> timelineList = new ArrayList<>();
         List<Document> followerList = followers.find(eq("username",nick)).into(new ArrayList<Document>());
         for(Document doc : followerList) {
             String follower = (String) doc.get("follower");
@@ -141,25 +141,25 @@ public class MongoTwitter {
         userline.insertOne(userDoc);
         timeline.insertMany(timelineList);
         
-        System.out.println("You tweeted \""+body+"\" at "+time);        
+        System.out.println("* You tweeted \""+body+"\" at "+time);        
     }
     
     public void showUserline(String username) {
         MongoCollection<Document> users = db.getCollection("users");
         Document oldDoc = users.find(eq("username",username)).first();
         if(oldDoc==null) {
-            System.out.println("Show userline failed : Username does not exist");
+            System.out.println("* Show userline failed : Username does not exist");
         }
         else {
             MongoCollection<Document> userline = db.getCollection("userline");
             List<Document> userlineList = userline.find(eq("username",username)).into(new ArrayList<Document>());
             if(userlineList.isEmpty()) {
-                System.out.println(username+"'s userline is empty");
+                System.out.println("* "+username+"'s userline is empty");
             }
             else {
                 MongoCollection<Document> tweets = db.getCollection("tweets");
-                List<Date> timeList = new ArrayList<Date>();
-                List<String> bodyList = new ArrayList<String>();
+                List<Date> timeList = new ArrayList<>();
+                List<String> bodyList = new ArrayList<>();
                 for(Document doc : userlineList) {
                     Date time = (Date) doc.get("time");
                     ObjectId tweet_id = (ObjectId) doc.get("tweet_id");
@@ -170,8 +170,9 @@ public class MongoTwitter {
                     bodyList.add(body);
                 }
 
+                System.out.println("* @"+username+"'s userline");
                 for(int i=0; i<timeList.size(); i++) {
-                    System.out.println("("+timeList.get(i)+") "+bodyList.get(i));
+                    System.out.println("["+timeList.get(i)+"] "+bodyList.get(i));
                 }
             }
         }
@@ -181,13 +182,13 @@ public class MongoTwitter {
         MongoCollection<Document> users = db.getCollection("users");
         Document oldDoc = users.find(eq("username",username)).first();
         if(oldDoc==null) {
-            System.out.println("Show timeline failed : Username does not exist");
+            System.out.println("* Show timeline failed : Username does not exist");
         }
         else {
             MongoCollection<Document> timeline = db.getCollection("timeline");
             List<Document> timelineList = timeline.find(eq("username",username)).into(new ArrayList<Document>());
             if(timelineList.isEmpty()) {
-                System.out.println(username+"'s timeline is empty");
+                System.out.println("* @"+username+"'s timeline is empty");
             }
             else {
                 MongoCollection<Document> tweets = db.getCollection("tweets");
@@ -206,8 +207,9 @@ public class MongoTwitter {
                     bodyList.add(body);
                 }
                 
+                System.out.println("* @"+username+"'s timeline");
                 for(int i=0; i<timeList.size(); i++) {
-                    System.out.println("("+timeList.get(i)+") "+nameList.get(i)+" : "+bodyList.get(i));
+                    System.out.println("["+timeList.get(i)+"] @"+nameList.get(i)+" : "+bodyList.get(i));
                 }
             }
         }
@@ -221,15 +223,13 @@ public class MongoTwitter {
         System.out.println("> Type 'EXIT' to quit");
     }
     
-    public void printMenu() {
-        System.out.println("Welcome to MongoTwitter");
-        System.out.println("Type any command below\n\n");        
-        System.out.println("SIGNUP <username> <password>");
-        System.out.println("FOLLOW <follower_username> <followed_username>");
-        System.out.println("TWEET <username> <tweet>");
-        System.out.println("USERLINE <username>");
-        System.out.println("TIMELINE <username>");
-        System.out.println("EXIT\n\n");
+    public void printMenu2() {
+        System.out.println("* To proceed, use any of available commands below");        
+        System.out.println("> Type 'FOLLOW <username>' to follow someone");
+        System.out.println("> Type 'TWEET <tweet>' to tweet something");
+        System.out.println("> Type 'USERLINE <username>' to show someone's userline");
+        System.out.println("> Type 'TIMELINE <username>' to show someone's timeline");
+        System.out.println("> Type 'EXIT' to quit");
     }
     
     public static void main(String[] args) throws IOException {
@@ -242,7 +242,6 @@ public class MongoTwitter {
         mt.printMenu1();
         do {
             input = new BufferedReader(new InputStreamReader(System.in)).readLine().trim();
-            
             if(input.isEmpty()) {
                 System.out.println("* Try again");
             }
@@ -267,11 +266,48 @@ public class MongoTwitter {
                 else if(!command.equalsIgnoreCase("EXIT")) {
                     System.out.println("* The command is not recognized. Try again");
                 }
-            }
-            
-        } while (!input.equalsIgnoreCase("EXIT") && !isLogin);
+            }    
+        } while (!command.equalsIgnoreCase("EXIT") && !isLogin);
         
-        
-        
+        if(isLogin) {
+            mt.printMenu2();
+            input = null;
+            command  = null;
+            do {
+                input = new BufferedReader(new InputStreamReader(System.in)).readLine().trim();
+                if(input.isEmpty()) {
+                    System.out.println("* Try again");
+                }
+                else {
+                    String[] parameters = new String[0];
+                    int whitespaceIdx = input.indexOf(" ");
+                    if (whitespaceIdx > -1) {
+                        command = input.substring(0, whitespaceIdx);
+                        unsplittedParams = input.substring(whitespaceIdx + 1);
+                        parameters = unsplittedParams.split(" ");
+                    } else {
+                        command = input;
+                    }
+                    
+                    if (command.equalsIgnoreCase("FOLLOW") && parameters.length == 1) {
+                        mt.follow(parameters[0]);
+                    }
+                    else if (command.equalsIgnoreCase("TWEET") && parameters.length >= 1) {
+                        mt.tweet(unsplittedParams);
+                    }
+                    else if(command.equalsIgnoreCase("USERLINE") && parameters.length == 1) {
+                        mt.showUserline(parameters[0]);
+                    }
+                    else if(command.equalsIgnoreCase("TIMELINE") && parameters.length == 1) {
+                        mt.showTimeline(parameters[0]);
+                    }
+                    else if(!command.equalsIgnoreCase("EXIT")) {
+                        System.out.println("* The command is not recognized. Try again");
+                    }
+                }
+            } while(!command.equalsIgnoreCase("EXIT"));
+        }
+        System.out.println("* Thankyou for using MongoTwitter");
+        System.out.println("* Goodbye!");
     }
 }
