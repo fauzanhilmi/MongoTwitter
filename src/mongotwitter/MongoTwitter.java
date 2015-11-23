@@ -16,6 +16,9 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -28,51 +31,50 @@ import org.bson.types.ObjectId;
  * @author fauzanhilmi
  */
 public class MongoTwitter {
-    private String address = "167.205.35.19";
-    private String database = "fauzan";
+    private final String address = "167.205.35.19";
+    private final String database = "fauzan";
     private MongoDatabase db = null;
     
     private String nick;
-    private boolean isLogin;
     
     public MongoTwitter() {
         String url = "mongodb://"+address;
         MongoClientURI uri = new MongoClientURI(url);
         MongoClient mc = new MongoClient(uri);
         db = mc.getDatabase(database);
-
-        isLogin = false;
     }
     
-    public void signup(String username, String password) {
+    public boolean signup(String username, String password) {
         MongoCollection<Document> users = db.getCollection("users");
         Document oldDoc = users.find(eq("username",username)).first();
         if(oldDoc!=null) {
-            System.out.println("Signup failed : Username already exists");
+            System.out.println("* Signup failed : Username already exists");
+            return false;
         }
         else {
             Document doc = new Document("username",username)
                     .append("password",password);
             users.insertOne(doc);
-            System.out.println("Username "+username+" is succesfully signed up");
+            System.out.println("* User @"+username+" is succesfully signed up");
             //autologin
             nick = username;
-            isLogin = true;
-            System.out.println("Welcome to the app, "+username+"!");
+            System.out.println("* Welcome to MongoTwitter, @"+username+"!");
+            return true;
         }
     }
     
-    public void login(String username, String password) {
+    public boolean login(String username, String password) {
         MongoCollection<Document> users = db.getCollection("users");
         Document oldDoc = users.find(and(eq("username",username),eq("password",password))).first();
         if(oldDoc==null) {
-            System.out.println("Login failed : Either username does not exist or the password didn't match");
+            System.out.println("* Login failed : Either username does not exist or the password didn't match");
+            return false;
         }
         else {
             nick = username;
-            isLogin = true;
-            System.out.println("Login succeed");
-            System.out.println("Welcome back, "+username+"!");
+            System.out.println("* Login succeed");
+            System.out.println("* Welcome back, @"+username+"!");
+            return true;
         }
     }
     
@@ -211,6 +213,14 @@ public class MongoTwitter {
         }
     }
     
+    public void printMenu1() {
+        System.out.println("* Welcome to MongoTwitter!");
+        System.out.println("* To proceed, use any of available commands below");
+        System.out.println("> Type 'SIGNUP <username> <password>' to sign up for new user");
+        System.out.println("> Type 'LOGIN <username> <password>' to login for existing user");
+        System.out.println("> Type 'EXIT' to quit");
+    }
+    
     public void printMenu() {
         System.out.println("Welcome to MongoTwitter");
         System.out.println("Type any command below\n\n");        
@@ -222,11 +232,46 @@ public class MongoTwitter {
         System.out.println("EXIT\n\n");
     }
     
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         MongoTwitter mt = new MongoTwitter();
-        mt.login("alfa","1234");
-//        mt.follow("alfa");
-        mt.tweet("alfa is speaking");
-          mt.showTimeline("beta");
+        
+        String input = null;
+        String command = null;
+        String unsplittedParams = null;
+        boolean isLogin = false;
+        mt.printMenu1();
+        do {
+            input = new BufferedReader(new InputStreamReader(System.in)).readLine().trim();
+            
+            if(input.isEmpty()) {
+                System.out.println("* Try again");
+            }
+            else {
+                String[] parameters = new String[0];
+                int whitespaceIdx = input.indexOf(" ");
+                
+                if (whitespaceIdx > -1) {
+                    command = input.substring(0, whitespaceIdx);
+                    unsplittedParams = input.substring(whitespaceIdx + 1);
+                    parameters = unsplittedParams.split(" ");
+                } else {
+                    command = input;
+                }
+                
+                if (command.equalsIgnoreCase("SIGNUP") && parameters.length == 2) {
+                    isLogin = mt.signup(parameters[0],parameters[1]);
+                }
+                else if (command.equalsIgnoreCase("LOGIN") && parameters.length == 2) {
+                    isLogin = mt.login(parameters[0],parameters[1]);
+                }
+                else if(!command.equalsIgnoreCase("EXIT")) {
+                    System.out.println("* The command is not recognized. Try again");
+                }
+            }
+            
+        } while (!input.equalsIgnoreCase("EXIT") && !isLogin);
+        
+        
+        
     }
 }
